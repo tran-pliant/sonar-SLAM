@@ -144,6 +144,10 @@ class Keyframe(object):
 
         # push the pose in 2D and 3D
         self.pose = new_pose
+
+        # print(self.pose)
+
+
         self.pose3 = n2g(
             (
                 new_pose.x(),
@@ -155,12 +159,34 @@ class Keyframe(object):
             ),
             "Pose3",
         )
+        
+
+        # correction for roll orientation of Argonaut
+        temp_pose3 = n2g(
+            (
+                new_pose.x(),
+                new_pose.y(),
+                self.dr_pose3.z(),
+                # self.dr_pose3.rotation().roll() - (np.pi/2), # correction for Argonaut's frame
+                self.dr_pose3.rotation().roll(),
+                self.dr_pose3.rotation().pitch() - (np.pi/2),
+                0,
+            ),
+            "Pose3",
+        )
+
 
         # transform the points based on the new pose, 2D and 3D
         self.transf_points = Keyframe.transform_points(self.points, self.pose)
+
+        self.points3D = np.column_stack((self.points, np.zeros(len(self.points))))
+
         self.transf_points3D = Keyframe.transform_points_3D(
-            self.points3D, self.pose, self.pose3
+            self.points3D, self.pose, temp_pose3
         )
+
+        # print(self.dr_pose3.z())
+
 
         # update the new covariance if we have one
         if new_cov is not None:

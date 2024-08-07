@@ -85,13 +85,15 @@ class SLAMNode(SLAM):
 
         #define the subsrcibing topics
         self.feature_sub = Subscriber(SONAR_FEATURE_TOPIC, PointCloud2)
-        self.odom_sub = Subscriber(LOCALIZATION_ODOM_TOPIC, Odometry)
+        # self.odom_sub = Subscriber(LOCALIZATION_ODOM_TOPIC, Odometry)
+        # JT: subscribe to our own odom msg from MOOS over bridge
+        self.odom_sub = Subscriber(MOOS_ODOM_TOPIC, Odometry)
 
         #define the sync policy
         self.time_sync = ApproximateTimeSynchronizer(
             [self.feature_sub, self.odom_sub], 20, 
             self.feature_odom_sync_max_delay, allow_headerless = False)
-
+        print(self.time_sync)
         #register the callback in the sync policy
         self.time_sync.registerCallback(self.SLAM_callback)
 
@@ -114,6 +116,10 @@ class SLAMNode(SLAM):
         self.cloud_pub = rospy.Publisher(
             SLAM_CLOUD_TOPIC, PointCloud2, queue_size=1, latch=True)
 
+        # JT: testing for pointcloud postprocessing (make pointcloud only XYZ instead of XYZI for PCD file generation...not sure how .pcd files handle the I / keys column)
+        self.cloud_pub2 = rospy.Publisher(
+            "/cloudxyz", PointCloud2, queue_size=1, latch=True)
+
         #tf broadcaster to show pose
         self.tf = tf.TransformBroadcaster()
 
@@ -131,17 +137,17 @@ class SLAMNode(SLAM):
         self.configure()
         loginfo("SLAM node is initialized")
 
-    @add_lock
-    def sonar_callback(self, ping:OculusPing)->None:
-        """Subscribe once to configure Oculus property.
-        Assume sonar configuration doesn't change much.
+    # @add_lock
+    # def sonar_callback(self, ping:OculusPing)->None:
+    #     """Subscribe once to configure Oculus property.
+    #     Assume sonar configuration doesn't change much.
 
-        Args:
-            ping (OculusPing): The sonar message. 
-        """
+    #     Args:
+    #         ping (OculusPing): The sonar message. 
+    #     """
         
-        self.oculus.configure(ping)
-        self.sonar_sub.unregister()
+    #     self.oculus.configure(ping)
+    #     self.sonar_sub.unregister()
 
     @add_lock
     def SLAM_callback(self, feature_msg:PointCloud2, odom_msg:Odometry)->None:
@@ -320,7 +326,7 @@ class SLAMNode(SLAM):
         """
 
         #define an empty array
-        all_points = [np.zeros((0, 2), np.float32)]
+        all_points = [np.zeros((0, 3), np.float32)]
 
         #list of keyframe ids
         all_keys = []
@@ -330,14 +336,15 @@ class SLAMNode(SLAM):
         for key in range(len(self.keyframes)):
 
             #parse the pose
-            pose = self.keyframes[key].pose
+            pose3 = self.keyframes[key].pose3
 
             #get the resgistered point cloud
             transf_points = self.keyframes[key].transf_points
+            transf_points3D = self.keyframes[key].transf_points3D
 
             #append
-            all_points.append(transf_points)
-            all_keys.append(key * np.ones((len(transf_points), 1)))
+            all_points.append(transf_points3D)
+            all_keys.append(key * np.ones((len(transf_points3D), 1)))
 
         all_points = np.concatenate(all_points)
         all_keys = np.concatenate(all_keys)
@@ -348,7 +355,8 @@ class SLAMNode(SLAM):
         )
 
         #parse the downsampled cloud into the ros xyzi format
-        sampled_xyzi = np.c_[sampled_points, np.zeros_like(sampled_keys), sampled_keys]
+        # sampled_xyzi = np.c_[sampled_points, np.zeros_like(sampled_keys), sampled_keys]
+        sampled_xyzi = np.c_[sampled_points, sampled_keys]
         
         #if there are no points return and do nothing
         if len(sampled_xyzi) == 0:
@@ -361,4 +369,13 @@ class SLAMNode(SLAM):
             cloud_msg.header.frame_id = "map"
         else:
             cloud_msg.header.frame_id = self.rov_id + "_map"
+
+        cloud_msg2 = n2r(sampled_points, "PointCloudXYZ")
+        cloud_msg2.header.stamp = self.current_keyframe.time
+        if self.rov_id == "":
+            cloud_msg2.header.frame_id = "map"
+        else:
+            cloud_msg2.header.frame_id = self.rov_id + "_map"
+
         self.cloud_pub.publish(cloud_msg)
+        self.cloud_pub2.publish(cloud_msg2)

@@ -15,6 +15,9 @@ SONAR_TOPIC = "/sonar_oculus_node/M750d/ping"
 SONAR_TOPIC_UNCOMPRESSED = "/sonar_oculus_node/ping"
 SONAR_VERTICAL_TOPIC = "/sonar_oculus_node/M1200d/ping"
 GYRO_TOPIC = "/gyro"
+MOOS_SONAR_TOPIC = "/moos/sonar_remap_image"
+MOOS_RES_TOPIC = "/moos/sonar_range_resolution"
+MOOS_ODOM_TOPIC = "/moos/localization/odom"
 
 
 SLAM_NS = "/bruce/slam/"
