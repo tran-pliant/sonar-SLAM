@@ -161,7 +161,7 @@ class Keyframe(object):
         )
         
 
-        # correction for roll orientation of Argonaut
+        # JT: modify pose used to transform points
         temp_pose3 = n2g(
             (
                 new_pose.x(),
@@ -170,7 +170,7 @@ class Keyframe(object):
                 # self.dr_pose3.rotation().roll() - (np.pi/2), # correction for Argonaut's frame
                 self.dr_pose3.rotation().roll(),
                 self.dr_pose3.rotation().pitch() - (np.pi/2),
-                0,
+                new_pose.theta(),
             ),
             "Pose3",
         )
@@ -184,9 +184,6 @@ class Keyframe(object):
         self.transf_points3D = Keyframe.transform_points_3D(
             self.points3D, self.pose, temp_pose3
         )
-
-        # print(self.dr_pose3.z())
-
 
         # update the new covariance if we have one
         if new_cov is not None:
