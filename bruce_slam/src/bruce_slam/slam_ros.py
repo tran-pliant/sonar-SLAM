@@ -173,7 +173,9 @@ class SLAMNode(SLAM):
 
         #convert the point cloud message to a numpy array of 2D
         points = ros_numpy.point_cloud2.pointcloud2_to_xyz_array(feature_msg)
-        points = np.c_[points[:,0] , -1 *  points[:,2]]
+        # points = np.c_[points[:,0] , -1 *  points[:,2]]
+        # JT: use first index to match orientation of point array from feature extraction node
+        points = np.c_[points[:,0] , -1 *  points[:,1]]
 
         # In case feature extraction is skipped in this frame
         if len(points) and np.isnan(points[0, 0]):
