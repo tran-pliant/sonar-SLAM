@@ -175,7 +175,11 @@ class SLAMNode(SLAM):
         points = ros_numpy.point_cloud2.pointcloud2_to_xyz_array(feature_msg)
         # points = np.c_[points[:,0] , -1 *  points[:,2]]
         # JT: use first index to match orientation of point array from feature extraction node
-        points = np.c_[points[:,0] , -1 *  points[:,1]]
+        # ^ why did they multiply by -1 in their case?
+        # in our case we need to extract (0,y,z) as (x,y,z) where z<->x and y<->y corresponding with aa 90 deg pitch down
+        # we can flip orientation of feature cloud and points cloud by just editing
+        # feature_extraction.py, but if we modify here the feature and point clouds will differ
+        points = np.c_[points[:,2] , 1 *  points[:,1]]
 
         # In case feature extraction is skipped in this frame
         if len(points) and np.isnan(points[0, 0]):

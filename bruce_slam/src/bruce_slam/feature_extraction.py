@@ -192,7 +192,11 @@ class FeatureExtraction(object):
         # JT: If this is to account for roll offset, need to change order to match 
         # (x,y,0) instead of (x,0,z)...not sure why Argonaut's correction is 
         # done here instead of elsewhere a little more legible
-        points = np.c_[points[:,0], points[:,1], np.zeros(len(points))]
+        # in our case, with a 90 deg pitch down, we need (0,y,z)
+        # points = np.c_[points[:,0], points[:,1], np.zeros(len(points))]
+        # seems like the extracted features might be horizontally flipped, so multiply y by -1
+        # need to double check with live data
+        points = np.c_[np.zeros(len(points)), -1 * points[:,1], points[:,0]]
 
         #convert to a pointcloud
         feature_msg = n2r(points, "PointCloudXYZ")

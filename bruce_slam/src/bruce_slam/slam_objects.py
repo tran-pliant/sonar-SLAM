@@ -179,8 +179,9 @@ class Keyframe(object):
         # transform the points based on the new pose, 2D and 3D
         self.transf_points = Keyframe.transform_points(self.points, self.pose)
 
+        # JT: append a column of z = 0 to points
         self.points3D = np.column_stack((self.points, np.zeros(len(self.points))))
-
+        # JT: 3D transform on points
         self.transf_points3D = Keyframe.transform_points_3D(
             self.points3D, self.pose, temp_pose3
         )
